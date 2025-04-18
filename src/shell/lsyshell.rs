@@ -3,12 +3,17 @@ use crate::utils::load_fonts;
 use eframe::egui;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::Read;
-use ssh2::Session;
+use std::io::{Read, Write};
+use std::sync::{Arc, Mutex};
+use ssh2::{Channel, Session};
 use std::net::TcpStream;
 use std::path::Path;
 
+// use std::sync::mpsc::{channel, Receiver, Sender};
+use crossbeam_channel::{unbounded, Receiver, Sender};
+use std::thread;
 use super::lsyerror::LsyError;
+use super::terminal::TerminalEmulator;
 
 
 // SSH 连接配置结构体
@@ -81,6 +86,9 @@ pub struct LsyShell {
     pub deferred_actions: Vec<DeferredAction>, // 新增延迟操作队列
     pub temp_connection: Option<SshConnection>, // 新增临时连接存储
     pub connection_states: HashMap<String, ConnectionState>, // 每个连接的UI状态
+
+    pub terminal_emulator: TerminalEmulator,
+    pub ssh_terminal: Option<SshTerminal>,
 }
 
 impl Default for LsyShell {
@@ -99,6 +107,8 @@ impl Default for LsyShell {
             deferred_actions: Vec::new(),
             temp_connection: Some(SshConnection::default()),
             connection_states: HashMap::new(),
+            terminal_emulator: TerminalEmulator::new(),
+            ssh_terminal: None,
         }
     }
 }
@@ -127,23 +137,36 @@ impl LsyShell {
     pub fn show_connection_dialog(&mut self) {
         self.new_dialog.show = true;
     }
-
     pub fn connect(&mut self, conn_name: &str) {
         if let Some(conn) = self.connections.get(conn_name) {
-            match connect_ssh(conn) {
-                Ok(session) => {
-                    self.session = Some(session);
-                    self.terminal_output.push_str(&format!("成功连接到 {}\n", conn_name));
-                    // 初始化终端提示符
-                    self.send_command("echo 'Welcome to LSYShell'");
-                  
+            match SshTerminal::new(conn) {
+                Ok(mut ssh_terminal) => {
+                    ssh_terminal.spawn_io_threads();
+                    self.ssh_terminal = Some(ssh_terminal);
+                    self.terminal_emulator.terminal_output.push_str(&format!("成功连接到 {}\n", conn_name));
                 }
                 Err(e) => {
-                    self.terminal_output.push_str(&format!("连接失败: {}\n", e));
+                    self.terminal_emulator.terminal_output.push_str(&format!("连接失败: {}\n", e));
                 }
             }
         }
     }
+    // pub fn connect(&mut self, conn_name: &str) {
+    //     if let Some(conn) = self.connections.get(conn_name) {
+    //         match connect_ssh(conn) {
+    //             Ok(session) => {
+    //                 self.session = Some(session);
+    //                 self.terminal_output.push_str(&format!("成功连接到 {}\n", conn_name));
+    //                 // 初始化终端提示符
+    //                 self.send_command("echo 'Welcome to LSYShell'");
+                  
+    //             }
+    //             Err(e) => {
+    //                 self.terminal_output.push_str(&format!("连接失败: {}\n", e));
+    //             }
+    //         }
+    //     }
+    // }
 
     pub fn get_connection_state(&mut self, name: &str) -> &mut ConnectionState {
         self.connection_states.entry(name.to_string()).or_default()
@@ -183,6 +206,7 @@ impl LsyShell {
         self.handle_terminal_output();
     }
 
+  
     // 新增命令执行方法
     pub fn send_command(&mut self, command: &str) {
         if let Some(session) = &self.session {
@@ -262,25 +286,96 @@ impl LsyShell {
     }
 }
 
+pub struct SshTerminal {
+   pub session: Session,
+   pub channel: Channel,
+   pub tx: Sender<Vec<u8>>,
+   pub rx: Receiver<Vec<u8>>,
+}
 
-// SSH 连接函数
-fn connect_ssh(conn: &SshConnection) -> Result<Session, LsyError> {
-    let tcp = TcpStream::connect((&*conn.host, conn.port))?;
-    let mut session = Session::new()?;
-    session.set_tcp_stream(tcp);
-    session.handshake()?;
+impl SshTerminal {
+    pub fn new(conn: &SshConnection) -> Result<Self, LsyError> {
+        let tcp = TcpStream::connect((&*conn.host, conn.port))?;
+        let mut session = Session::new()?;
+        session.set_tcp_stream(tcp);
+        session.handshake()?;
 
-    match &conn.auth_method {
-        AuthMethod::Password(password) => {
-            session.userauth_password(&conn.username, password)?;
+        match &conn.auth_method {
+            AuthMethod::Password(password) => {
+                session.userauth_password(&conn.username, password)?;
+            }
+            AuthMethod::KeyFile(path) => {
+                session.userauth_pubkey_file(&conn.username, None, Path::new(path), None)?;
+            }
         }
-        AuthMethod::KeyFile(path) => {
-            session.userauth_pubkey_file(&conn.username, None, Path::new(path), None)?;
-        }
+
+        let mut s_channel = session.channel_session()?;
+        s_channel.request_pty("xterm-256color", None, None)?;
+        s_channel.shell()?;
+
+        let (tx, rx) = unbounded();  // 使用 crossbeam-channel
+
+        Ok(Self {
+            session,
+            channel: s_channel,
+            tx,
+            rx: rx,
+        })
     }
 
-    Ok(session)
+    pub fn spawn_io_threads(&mut self) {
+        let mut channel = self.channel.clone();
+        let tx = self.tx.clone();
+       
+   
+        // 输出线程
+        thread::spawn(move || {
+            let mut buf = [0; 1024];
+            loop {
+                match channel.read(&mut buf) {
+                    Ok(n) if n > 0 => {
+                        tx.send(buf[..n].to_vec()).unwrap();
+                    }
+                    _ => break,
+                }
+            }
+        });
+
+       // 输入线程
+       let rx = self.rx.clone();
+       let mut channel = self.channel.clone();
+       thread::spawn(move || {
+        while let Ok(data) = rx.recv() {
+            channel.write_all(&data).unwrap();
+        }
+    });
+    }
 }
+
+// SSH 连接函数
+// fn connect_ssh(conn: &SshConnection) -> Result<Session, LsyError> {
+//     let tcp = TcpStream::connect((&*conn.host, conn.port))?;
+//     let mut session = Session::new()?;
+//     session.set_tcp_stream(tcp);
+//     session.handshake()?;
+
+//     // 创建交互式通道
+//     // let mut channel = session.channel_session()?;
+//     // channel.request_pty("xterm", None, Some((80, 24, 0, 0)))?;
+//     // channel.shell()?;
+    
+
+//     match &conn.auth_method {
+//         AuthMethod::Password(password) => {
+//             session.userauth_password(&conn.username, password)?;
+//         }
+//         AuthMethod::KeyFile(path) => {
+//             session.userauth_pubkey_file(&conn.username, None, Path::new(path), None)?;
+//         }
+//     }
+
+//     Ok(session)
+// }
 
 const CONNECTION_PATH: &str = "./config/connections.json";
 
