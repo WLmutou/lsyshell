@@ -1,0 +1,76 @@
+[package]
+name = "lsyshell"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+authors.workspace = true
+documentation.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+env_logger = "0.10"
+
+eframe = "0.31.1"
+egui_extras = "0.31.1"
+
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+ssh2 = "0.9"  # 
+crossterm = "0.27"  # 用于终端模拟
+crossbeam-channel = "0.5"
+
+tokio = { version="1.17.0", features = [
+    "io-std",
+    "io-util",
+    "rt-multi-thread",
+    "time",
+    "net",
+    "sync",
+    "macros",
+] }
+
+
+russh = "0.51.1"
+termion = "2"
+tokio-fd = "0.3"
+anyhow = "1.0.4"
+log = "0.4.11"
+
+egui-toast = { path = "../crates/egui-toast" }
+egui-term = { path = "../crates/egui-term" }
+egui_dock = { path = "../crates/egui-dock" }
+egui-theme-switch = { path = "../crates/egui-theme-switch" }
+orion.workspace = true
+thiserror.workspace = true
+egui.workspace = true
+indexmap.workspace = true
+garde = { workspace = true, features = ["full"] }
+copypasta.workspace = true
+chrono.workspace = true
+rusqlite = { workspace = true, features = ["bundled"] }
+catppuccin-egui = { workspace = true, features = ["egui31"] }
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+homedir.workspace = true
+open.workspace = true
+egui-phosphor.workspace = true
+egui_form = { workspace = true, features = ["validator_garde"] }
+
+
+[target.'cfg(unix)'.dependencies]
+rustix = { workspace = true, features = ["process"] }
+
+# cargo install cargo-packager --locked
+# cargo packager --release
+[package.metadata.packager]
+before-packaging-command = "cargo build --release"
+product-name = "lsyshell"
+identifier = "io.github.lsyshell"
+resources = []
+out-dir = "../target/dist"
+icons = []

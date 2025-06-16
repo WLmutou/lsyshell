@@ -1,18 +1,53 @@
-[package]
-name = "lsyshell"
-version = "0.1.0"
+[workspace]
+resolver = "2"
+members = [
+    "lsyshell"
+]
+
+[workspace.package]
 edition = "2021"
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+authors = ["lijun <jun1484528313@163.com>"]
+documentation = "https://github.com/WLmutou/lsyshell"
+homepage = "https://github.com/WLmutou/lsyshell"
+repository = "https://github.com/WLmutou/lsyshell"
+categories = ["terminal", "egui"]
+keywords = ["terminal", "egui"]
 
-[dependencies]
-env_logger = "0.10"
 
-eframe = "0.31.1"
-egui_extras = "0.31.1"
+[workspace.dependencies]
+alacritty_terminal = { git = "https://github.com/alacritty/alacritty" }
+anyhow = "1"
+copypasta = "0.10"
+open = "5"
+parking_lot = "0.12"
+polling = "3"
+smol = "2"
+signal-hook = "0.3"
+indexmap = "2"
+wezterm-ssh = { git = "https://github.com/iamazy/wezterm.git", branch = "nxssh" }
+chrono = "0.4"
+eframe = "0.31"
+egui = "0.31"
+orion = "0.17"
+thiserror = "2"
+garde = "0.22"
+duplicate = "2"
+paste = "1"
+serde = "1"
+rusqlite = "0.33"
+catppuccin-egui = { version = "5.5", default-features = false }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+homedir = "0.3"
+rustix = "0.38"
+egui-phosphor = "0.9"
+egui_form = "0.5"
 
-
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-
-ssh2 = "0.9"  # 
-crossterm = "0.27"  # 用于终端模拟
-crossbeam-channel = "0.5"
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
