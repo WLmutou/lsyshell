@@ -24,6 +24,8 @@ impl LsyShell {
             window_menu(ui);
             // Tools
             self.tools_menu(ui);
+            // sql ui
+            self.sqlui_menu(ui);
             // Help
             help_menu(ui);
         });
@@ -39,14 +41,14 @@ impl LsyShell {
                 },
             );
         }
-        ui.menu_button("Session", |ui| {
-            let new_session_btn = Button::new("New Session").min_size((BTN_WIDTH, 0.).into());
+        ui.menu_button("文件", |ui| {
+            let new_session_btn = Button::new("新建连接").min_size((BTN_WIDTH, 0.).into());
             if ui.add(new_session_btn).clicked() {
                 *self.opts.show_add_session_modal.borrow_mut() = true;
                 ui.close_menu();
             }
             let new_term_shortcut = ui.ctx().format_shortcut(&new_term_shortcut);
-            let new_term_btn = Button::new("New Terminal")
+            let new_term_btn = Button::new("新窗口")
                 .min_size((BTN_WIDTH, 0.).into())
                 .shortcut_text(new_term_shortcut);
             if ui.add(new_term_btn).clicked() {
@@ -59,14 +61,14 @@ impl LsyShell {
                 ui.close_menu();
             }
             ui.separator();
-            if ui.button("Quit").clicked() {
+            if ui.button("退出").clicked() {
                 std::process::exit(0);
             }
         });
     }
 
     fn tools_menu(&mut self, ui: &mut egui::Ui) {
-        ui.menu_button("Tools", |ui| {
+        ui.menu_button("工具", |ui| {
             ui.add(Checkbox::new(&mut self.opts.multi_exec, "Multi Exec"));
         });
     }
@@ -134,8 +136,8 @@ impl LsyShell {
 }
 
 fn window_menu(ui: &mut egui::Ui) {
-    ui.menu_button("Window", |ui| {
-        let new_window_btn = Button::new("New Window").min_size((BTN_WIDTH, 0.).into());
+    ui.menu_button("窗口", |ui| {
+        let new_window_btn = Button::new("新窗口").min_size((BTN_WIDTH, 0.).into());
         if ui.add(new_window_btn).clicked() {
             match env::current_exe() {
                 Ok(path) => {
@@ -171,9 +173,25 @@ fn window_menu(ui: &mut egui::Ui) {
     });
 }
 
+impl LsyShell {
+    fn sqlui_menu(&mut self, ui: &mut egui::Ui) {
+        ui.menu_button("数据库工具", |ui| {
+            if ui.button("mysql").clicked() {
+            
+            }
+            if ui.button("sqlite").clicked() {
+                
+            } 
+            if ui.button("postgresql").clicked() {
+                
+            }
+        });
+    }
+}
+
 fn help_menu(ui: &mut egui::Ui) {
-    ui.menu_button("Help", |ui| {
-        let about_btn = Button::new("About").min_size((BTN_WIDTH, 0.).into());
+    ui.menu_button("帮助", |ui| {
+        let about_btn = Button::new("关于").min_size((BTN_WIDTH, 0.).into());
         if ui.add(about_btn).clicked() {
             if let Err(err) = open::that(REPOSITORY_URL) {
                 error!("opening page {REPOSITORY_URL} error: {err}");

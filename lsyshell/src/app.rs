@@ -9,7 +9,7 @@ use egui_theme_switch::global_theme_switch;
 use egui_toast::Toasts;
 use std::sync::mpsc::{Receiver, Sender};
 
-use crate::{db::DbConn, errors::{error_toast, LsyError}, ui::{form::{AuthType, NxStateManager}, tab_view::Tab}, utils::{self, load_fonts}};
+use crate::{db::DbConn, errors::{error_toast, LsyError}, ui::{form::{AuthType, NxStateManager}, tab_view::Tab}, utils::load_fonts};
 use egui_phosphor::regular::{DRONE, NUMPAD};
 
 
@@ -96,7 +96,7 @@ impl LsyShell {
             "LsyShell",
             options,
             Box::new(|cc| {
-                catppuccin_egui::set_theme(&cc.egui_ctx, catppuccin_egui::FRAPPE);
+                // catppuccin_egui::set_theme(&cc.egui_ctx, catppuccin_egui::FRAPPE);
                 egui_extras::install_image_loaders(&cc.egui_ctx);
                 load_fonts(&cc.egui_ctx);
                 cc.egui_ctx
@@ -133,33 +133,86 @@ impl eframe::App for LsyShell {
             .anchor(Align2::CENTER_CENTER, (10.0, 10.0))
             .direction(egui::Direction::TopDown);
 
-        egui::TopBottomPanel::top("main_top_panel").show(ctx, |ui| {
-            self.menubar(ui);
-        });
-        egui::SidePanel::right("main_right_panel")
-            .resizable(true)
-            .width_range(200.0..=300.0)
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
-                        ui.label("Sessions");
-                    });
+        // egui::TopBottomPanel::top("main_top_panel").show(ctx, |ui| {
+        //     self.menubar(ui);
+        // });
 
-                    // TODO: add close menu
-                    // ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-                    //     ui.label("Sessions");
-                    // });
+            
+        // egui::SidePanel::left("activity_Bar")
+        //     .max_width(25.0)
+        //     .resizable(false)
+        //     .show(ctx, |ui| ui.add(egui::Label::new("bar")));
+    
+
+        // egui::SidePanel::left("main_right_panel")
+        //     .default_width(180.0)
+        //     .resizable(true)
+        //     .width_range(200.0..=2000.0)
+        //     .show(ctx, |ui| {
+        //         ui.horizontal(|ui| {
+        //             ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP), |ui| {
+        //                 ui.label("Sessions");
+        //             });
+        //             // TODO: add close menu
+        //             // ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+        //             //     ui.label("Sessions");
+        //             // });
+        //         });
+
+        //         self.search_sessions(ui);
+        //         ui.separator();
+        //         self.list_sessions(ctx, ui, &mut toasts);
+        //     });
+
+        // egui::TopBottomPanel::bottom("main_bottom_panel").show(ctx, |ui| {
+        //     ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+        //         global_theme_switch(ui);
+        //     });
+        // });
+
+        
+        egui::TopBottomPanel::top("main_top_panel").show(ctx, |ui| {
+           self.menubar(ui);
+        });
+    
+        egui::TopBottomPanel::bottom("main_bottom_panel").show(ctx, |ui| {
+            ui.vertical_centered(|ui| {
+                // ui.heading("Status Bar");
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                    global_theme_switch(ui);
+                });
+            });
+        });
+    
+        egui::SidePanel::left("Activity Bar")
+            .max_width(35.0)
+            .resizable(false)
+            .show(ctx, |ui| ui.add(egui::Label::new("Activity Bar")));
+    
+    
+        // // 侧边栏显示连接列表
+        egui::SidePanel::left("main_left_panel")
+            .default_width(180.0)
+            .width_range(100.0..=2000.0)
+            .resizable(true)
+            .show(ctx, |ui | {
+                egui::TopBottomPanel::bottom("AB bottom").show_inside(ui, |ui| {
+                    ui.label("连接管理");
                 });
 
+                ui.heading("连接管理");
+                // 添加新建连接按钮（修改后）
+                // 显示连接列表
                 self.search_sessions(ui);
                 ui.separator();
+                if ui.button("新建连接").clicked() {
+                    // self.show_connection_dialog();
+                    *self.opts.show_add_session_modal.borrow_mut() = true;
+                }
                 self.list_sessions(ctx, ui, &mut toasts);
-            });
-        egui::TopBottomPanel::bottom("main_bottom_panel").show(ctx, |ui| {
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-                global_theme_switch(ui);
-            });
+
         });
+
 
         if *self.opts.show_add_session_modal.borrow() {
             self.opts.surrender_focus();

@@ -1,5 +1,5 @@
 
-pub mod shell;
+
 pub mod utils;
 pub mod editor;
 pub mod app;
