@@ -100,7 +100,7 @@ impl LsyShell {
         let show_add_session_modal = self.opts.show_add_session_modal.clone();
         let mut should_close = false;
 
-        Window::new("New Session")
+        Window::new(" 新建连接 ")
             .order(Order::Middle)
             .open(&mut show_add_session_modal.borrow_mut())
             .anchor(Align2::CENTER_CENTER, [0.0, 0.0])
@@ -111,7 +111,7 @@ impl LsyShell {
 
                 TopBottomPanel::bottom("session_modal_bottom_panel").show_inside(ui, |ui| {
                     ui.with_layout(Layout::right_to_left(egui::Align::TOP), |ui| {
-                        if let Some(Ok(())) = form.handle_submit(&ui.button("Submit"), ui) {
+                        if let Some(Ok(())) = form.handle_submit(&ui.button("提交"), ui) {
                             match self.submit_session(ctx, &mut session_state) {
                                 Ok(_) => should_close = true,
                                 Err(err) => {
@@ -219,22 +219,22 @@ impl LsyShell {
             .show(ui, |ui| {
                 // group
                 ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.label("Group:");
+                    ui.label("分组:");
                 });
                 FormField::new(form, "group").ui(ui, TextEdit::singleline(&mut session.group));
                 ui.end_row();
 
                 // name
                 ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.label("Name:");
+                    ui.label("名称:");
                 });
                 FormField::new(form, "name").ui(ui, TextEdit::singleline(&mut session.name));
                 ui.end_row();
 
                 // host
                 let host_label = match session.auth_type {
-                    AuthType::Password => "Host:",
-                    AuthType::Config => "Host Alias:",
+                    AuthType::Password => "地址:",
+                    AuthType::Config => "地址别名:",
                 };
 
                 ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
@@ -269,7 +269,7 @@ impl LsyShell {
 
                 // auth type
                 ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-                    ui.label("Auth Type:");
+                    ui.label("认证方式:");
                 });
                 ComboBox::from_id_salt(session.auth_type)
                     .selected_text(session.auth_type.to_string())
@@ -292,7 +292,7 @@ impl LsyShell {
                 if let AuthType::Password = session.auth_type {
                     // username
                     ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.label("Username:");
+                        ui.label("用户名:");
                     });
                     FormField::new(form, "username")
                         .ui(ui, TextEdit::singleline(&mut session.username));
@@ -300,7 +300,7 @@ impl LsyShell {
 
                     // password
                     ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.label("Password:");
+                        ui.label("密码:");
                     });
                     FormField::new(form, "auth_data").ui(
                         ui,
