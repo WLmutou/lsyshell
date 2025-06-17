@@ -1,5 +1,7 @@
 ## 李思悦shell -- lsyshell
 
+![例子](screenshot/lsyshell.png "LsyShell")
+
 ### 目标功能：
 
 - [x] 1.跨平台，包括windows、linux、Android等平台
